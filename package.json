@@ -1,0 +1,28 @@
+{
+  "name": "mongo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HKhem0927/Week-18-MongoDB.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/HKhem0927/Week-18-MongoDB/issues"
+  },
+  "homepage": "https://github.com/HKhem0927/Week-18-MongoDB#readme",
+  "dependencies": {
+    "body-parser": "^1.17.1",
+    "cheerio": "^0.22.0",
+    "express": "^4.15.2",
+    "express-handlebars": "^3.0.0",
+    "mongoose": "^4.9.3",
+    "morgan": "^1.8.1",
+    "request": "^2.81.0"
+  }
+}
