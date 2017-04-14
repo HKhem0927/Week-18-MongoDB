@@ -41,7 +41,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'hbs');
 
 // Database configuration with mongoose
-mongoose.connect("mongodb://localhost/week18hmwk");
+mongoose.connect("mongodb://heroku_qvzw8sgz:v1di6ungt5ckubs14r7uem4ltn@ds161190.mlab.com:61190/heroku_qvzw8sgz");
 var db = mongoose.connection;
 
 // Show any mongoose errors
