@@ -1,16 +1,11 @@
-#main{
-	background-image: url('../img/landingpage_bg.jpg');
-	background-repeat: repeat;
-}
-
 .individArticle{
-	background-color: #eee;
+	background-color: white;
 	padding: 20px;
 	margin: 20px;
 }
 
 #commentContainer{
-	background-color: #eee;
+	background-color: white;
 	padding: 25px;
 	border-bottom-left-radius: 5px;
 	border-bottom-right-radius: 5px;
