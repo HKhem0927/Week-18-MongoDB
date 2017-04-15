@@ -1,170 +1,164 @@
-/* Showing Mongoose's "Populated" Method (18.3.8)
- * INSTRUCTOR ONLY
- * =============================================== */
-
-// Dependencies
-var express = require("express");
-var bodyParser = require("body-parser");
-var logger = require("morgan");
-var mongoose = require("mongoose");
-var exphbs = require("express-handlebars");
-// Requiring our Note and Article models
-var Note = require("./models/Note.js");
-var Article = require("./models/Article.js");
-// Our scraping tools
-var request = require("request");
-var cheerio = require("cheerio");
-var path = require("path")
-// Set mongoose to leverage built in JavaScript ES6 Promises
-mongoose.Promise = Promise;
-
-
-// Initialize Express
+var express = require('express');
 var app = express();
 
-// Use morgan and body parser with our app
-app.use(logger("dev"));
+var request = require('request');
+var cheerio = require('cheerio');
+
+var ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8) AppleWebKit/534.57.2 (KHTML, like Gecko) Version/5.1.7 Safari/534.57.2'
+var url = 'http://www.newyorker.com/popular?intcid=mod-most-popular'
+
+
+
+var logger = require('morgan');
+var bodyParser = require('body-parser');
+var mongoose = require('mongoose');
+
+app.use(logger('dev'));
 app.use(bodyParser.urlencoded({
-  extended: false
+	extended: false
 }));
 
-// Make public a static dir
-app.use(express.static("public"));
-
+app.use(express.static(process.cwd() + '/public'));
+var exphbs = require('express-handlebars');
 app.engine('handlebars', exphbs({
-  defaultLayout: 'main'
+	defaultLayout: 'main'
 }));
-
 app.set('view engine', 'handlebars');
 
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'hbs');
 
-// Database configuration with mongoose
-mongoose.connect("mongodb://heroku_qvzw8sgz:v1di6ungt5ckubs14r7uem4ltn@ds161190.mlab.com:61190/heroku_qvzw8sgz");
+mongoose.connect('mongodb://heroku_qvzw8sgz:v1di6ungt5ckubs14r7uem4ltn@ds161190.mlab.com:61190/heroku_qvzw8sgz');
 var db = mongoose.connection;
 
-// Show any mongoose errors
-db.on("error", function(error) {
-  console.log("Mongoose Error: ", error);
-});
 
-// Once logged in to the db through mongoose, log a success message
-db.once("open", function() {
-  console.log("Mongoose connection successful.");
+db.on('error', function(err){
+	console.log('Mongoose Error: ' + err);
 });
 
 
-
-
-// Routes
-// ======
-
-// A GET request to scrape the echojs website
-app.get("/scrape", function(req, res) {
-  // First, we grab the body of the html with request
-  request("http://www.echojs.com/", function(error, response, html) {
-    // Then, we load that into cheerio and save it to $ for a shorthand selector
-    var $ = cheerio.load(html);
-    // Now, we grab every h2 within an article tag, and do the following:
-    $("article h2").each(function(i, element) {
-
-      // Save an empty result object
-      var result = {};
-
-      // Add the text and href of every link, and save them as properties of the result object
-      result.title = $(this).children("a").text();
-      result.link = $(this).children("a").attr("href");
-
-      // Using our Article model, create a new entry
-      // This effectively passes the result object to the entry (and the title and link)
-      var entry = new Article(result);
-
-      // Now, save that entry to the db
-      entry.save(function(err, doc) {
-        // Log any errors
-        if (err) {
-          console.log(err);
-        }
-        // Or log the doc
-        else {
-          console.log(doc);
-        }
-      });
-
-    });
-  });
-  // Tell the browser that we finished scraping the text
-  res.send("Scrape Complete");
-});
-
-// This will get the articles we scraped from the mongoDB
-app.get("/articles", function(req, res) {
-  // Grab every doc in the Articles array
-  Article.find({}, function(error, doc) {
-    // Log any errors
-    if (error) {
-      console.log(error);
-    }
-    // Or send the doc to the browser as a json object
-    else {
-      res.json(doc);
-    }
-  });
-});
-
-// Grab an article by it's ObjectId
-app.get("/articles/:id", function(req, res) {
-  // Using the id passed in the id parameter, prepare a query that finds the matching one in our db...
-  Article.findOne({ "_id": req.params.id })
-  // ..and populate all of the notes associated with it
-  .populate("note")
-  // now, execute our query
-  .exec(function(error, doc) {
-    // Log any errors
-    if (error) {
-      console.log(error);
-    }
-    // Otherwise, send the doc to the browser as a json object
-    else {
-      res.json(doc);
-    }
-  });
+db.once('open', function(){
+	console.log('Mongoose connection a success!');
 });
 
 
-// Create a new note or replace an existing note
-app.post("/articles/:id", function(req, res) {
-  // Create a new note and pass the req.body to the entry
-  var newNote = new Note(req.body);
+var Article = require('./models/articles.js');
+var Comment = require('./models/comments.js');
 
-  // And save the new note the db
-  newNote.save(function(error, doc) {
-    // Log any errors
-    if (error) {
-      console.log(error);
-    }
-    // Otherwise
-    else {
-      // Use the article id to find and update it's note
-      Article.findOneAndUpdate({ "_id": req.params.id }, { "note": doc._id })
-      // Execute the above query
-      .exec(function(err, doc) {
-        // Log any errors
-        if (err) {
-          console.log(err);
-        }
-        else {
-          // Or send the document to the browser
-          res.send(doc);
-        }
-      });
-    }
-  });
+
+app.get('/', function(req,res){
+	res.render('index');
+});
+
+app.get('/articles', function(req,res){
+	Article.find({})
+		.sort({'date': -1})
+		.limit(30)
+		.exec(
+			function(err, doc){
+				
+				if (err){
+					console.log(err);
+				} 
+					else {
+					res.json(doc);
+				}
+			});
+	});
+
+app.get('/articles/:id', function(req,res){
+	Article.findOne({'_id': req.params.id})
+		.populate('comments')
+		.exec(function(err,doc){
+			if(err){
+				console.log(err);
+			}
+			else{
+				console.log("Comment box",doc);
+				res.render('comments', doc);
+				
+			}
+		});
+});
+
+app.post('/articles/:id', function(req, res){
+		var newComment = new Comment(req.body);
+
+		newComment.save(function(err, doc){
+	
+		if(err){
+			console.log(err);
+		} 
+	
+		else {
+	
+			Article.findOneAndUpdate({'_id': req.params.id}, {$push: {'comments':doc._id}}, {new: true, upsert: true})
+				.populate('comments')
+				.exec(function(err, doc){
+					console.log("COMMENTS", doc)
+	
+					if (err){
+						console.log(err);
+					} else {
+						res.render('comments', doc);
+					}
+			});
+		}
+	});
+
 });
 
 
-// Listen on port 3000
-app.listen(3000, function() {
-  console.log("App running on port 3000!");
+app.get('/scrape', function(req,res){
+	
+	var scrapePage = function(error, response, html){
+		if (error || response.statusCode != 200){
+			console.log(error);
+		}
+		else{
+			var result = {};
+			var $ = cheerio.load(html);
+
+			$('.popular-page1').each(function(i, element){
+
+				result.title = $(this).children('article').children('span').find('a').text();
+
+				result.img_url = $(this).children('article').children('figure').children('a').children('img').attr('src');
+
+				result.link = $(this).children('article').children('figure').children('a').attr('href');
+
+				result.author = $(this).children('article').children('.text').children('h3').children('a').text();
+
+				result.author_url = $(this).children('article').children('.text').children('h3').children('a').attr('href');;
+
+				var entry = new Article(result);
+
+					entry.save(function(err,doc){
+						if(err){
+							console.log(err);
+						}
+						else{
+							console.log(doc);
+						}
+
+					});
+
+				
+			});
+		}
+	}
+
+	request(
+		{
+			url: url,
+			headers: {
+				"User-Agent" : ua
+			}
+		}, scrapePage
+	);
+
+	res.redirect("/");
+});
+
+var PORT = process.env.PORT || 3000
+app.listen(PORT, function(){
+	console.log("Listening at Port " + PORT)
 });
